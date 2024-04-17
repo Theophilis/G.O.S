@@ -1,6 +1,7 @@
 import smbus
 from time import sleep
 import socket
+import sys
 from struct import pack
 
 #network
@@ -54,7 +55,7 @@ class mux:
     def __init__(self, bus):
         self.bus = smbus.SMBus(bus)
         
-    def channel(self, address=0x70, channel=0):
+    def channel(self, address=0x72, channel=0):
         
         if (channel==0): action = 0x01
         elif (channel==1): action = 0x02
@@ -69,13 +70,13 @@ class mux:
         self.bus.write_byte_data(address, 0x04, action)
         
 
-channel = 0
+channel = 1
 plex = mux(1)
-plex.channel(0x70, channel)
+#plex.channel(0x72, channel)
 
 print(plex)
 
-number_of_sensors = 8
+number_of_sensors = 1
 bus = smbus.SMBus(1)
 MPU_Address = 0x68
 
@@ -84,19 +85,14 @@ print()
 print(bus)
 print(MPU_Address)
 print('mpu init')
+MPU_Init()
 
-for x in range(number_of_sensors):
-    print(x)
-    plex.channel(0x70, x)
-    MPU_Init()
-    
-print()
-print('ready')
+crash = 0
 
 while True:
-    channel += 1
-    channel = channel%number_of_sensors
-    plex.channel(0x70, channel)
+    #channel += 1
+    #channel = channel%number_of_sensors
+    #plex.channel(0x72, channel)
     
     try:
         #read raw Accel values
@@ -109,21 +105,24 @@ while True:
         Ay = acc_y/16384.0
         Az = acc_z/16384.0
         
-        
-        #read gyroscope raw value
-        gyro_x = read_raw_data(GYRO_XOUT_H)
-        gyro_y = read_raw_data(GYRO_YOUT_H)
-        gyro_z = read_raw_data(GYRO_ZOUT_H)
-        
-        Gx = gyro_x/131.0
-        Gy = gyro_y/131.0
-        Gz = gyro_z/131.0
+        #print()
+        #print(Ax, Ay, Az)
 
         #send Acc data and channel#        
-        message = pack('7f', Ax, Ay, Az, Gx, Gy, Gz, channel)
+        message = pack('4f', Ax, Ay, Az, channel)
         sock.sendto(message, server_address)
-        sleep(.001)
+        sleep(.01)
     except:
         print('crash: ' + str(channel))
+        crash = 1
+    
+    if crash == 1:
+        try:
+            MPU_Init()
+            crash = 0
+        except:
+            crash = 1
+            
     
         
+
