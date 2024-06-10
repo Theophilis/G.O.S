@@ -125,5 +125,11 @@ while True:
         sleep(.001)
     except:
         print('crash: ' + str(channel))
-    
-        
+        crash = 1
+
+    if crash == 1:
+        try:
+            MPU_Init()
+            crash = 0
+        except:
+            crash = 1
